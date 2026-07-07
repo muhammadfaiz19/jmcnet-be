@@ -21,6 +21,8 @@ PORT=9091
 DATABASE_URL="file:./dev.db"
 JWT_SECRET="jmcnet-super-secret-key-123!"
 GROQ_API_KEY="gsk_xxxx..." # Masukkan API Key Groq Anda untuk fitur Chatbot AI
+INITIAL_ADMIN_EMAIL=""
+INITIAL_ADMIN_PASSWORD=""
 ```
 
 ### 3. Instalasi Dependensi
@@ -48,9 +50,7 @@ API akan berjalan di [http://localhost:9091](http://localhost:9091).
 ---
 
 ## 🔒 Akun Akses Admin Bawaan
-Setelah proses database seed berhasil dijalankan, Anda dapat login menggunakan akun administrator default:
-- **Email**: `admin@jmcnet.id`
-- **Password**: `jmcnet2026`
+Setelah proses database seed berhasil dijalankan, Anda dapat login menggunakan akun administrator default sesuai dengan nilai variabel `INITIAL_ADMIN_EMAIL` dan `INITIAL_ADMIN_PASSWORD` pada berkas `.env` Anda.
 
 ---
 
