@@ -1,12 +1,14 @@
-import pdf from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import XLSX from "xlsx";
 
 /**
  * Extract plain text content from a PDF file buffer.
  */
 export async function parsePdf(buffer: Buffer): Promise<string> {
-  const parsed = await (pdf as any)(buffer);
-  return parsed.text || "";
+  const parser = new PDFParse({ data: buffer });
+  const result = await parser.getText();
+  await parser.destroy();
+  return result.text || "";
 }
 
 
