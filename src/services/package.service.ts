@@ -7,6 +7,8 @@ const formatPackageResponse = (pkg: any) => {
   if (!pkg) return null;
   return {
     id: pkg.id,
+    categoryId: pkg.categoryId,
+    category: pkg.category,
     name: pkg.name,
     tierLabel: pkg.tierLabel,
     tierNumber: pkg.tierNumber,

@@ -7,6 +7,8 @@ const formatVoucherPlanResponse = (plan: any) => {
   if (!plan) return null;
   return {
     id: plan.id,
+    categoryId: plan.categoryId,
+    category: plan.category,
     name: plan.name,
     type: plan.type,
     tagLabel: plan.tagLabel,

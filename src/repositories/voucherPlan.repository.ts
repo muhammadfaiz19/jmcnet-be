@@ -9,16 +9,19 @@ export const voucherPlanRepository = {
     return db.voucherPlan.findMany({
       where,
       orderBy: { id: "asc" },
+      include: { category: true },
     });
   },
 
   async findById(id: number) {
     return db.voucherPlan.findUnique({
       where: { id },
+      include: { category: true },
     });
   },
 
   async create(data: {
+    categoryId?: number | null;
     name: string;
     type: string;
     tagLabel: string;
@@ -34,6 +37,7 @@ export const voucherPlanRepository = {
   },
 
   async update(id: number, data: {
+    categoryId?: number | null;
     name?: string;
     type?: string;
     tagLabel?: string;

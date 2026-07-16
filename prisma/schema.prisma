@@ -20,11 +20,13 @@ model Admin {
 
 // Paket Internet (SGC HEMAT, SGC LITE, SGC SOCIALLY, SGC FAMILY)
 model Package {
-  id               Int      @id @default(autoincrement())
-  name             String   @db.VarChar(100)           // "SGC HEMAT"
-  tierLabel        String   @db.VarChar(50)            // "Pemula / Hemat"
-  tierNumber       String   @db.VarChar(10)            // "Tier 1"
-  description      String   @db.VarChar(500)           // Short desc
+  id               Int              @id @default(autoincrement())
+  categoryId       Int?
+  category         ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name             String           @db.VarChar(100)           // "SGC HEMAT"
+  tierLabel        String           @db.VarChar(50)            // "Pemula / Hemat"
+  tierNumber       String           @db.VarChar(10)            // "Tier 1"
+  description      String           @db.VarChar(500)           // Short desc
   speedMbps        Int                                  // 5, 16, 26, 56
   priceMonthly     Int                                  // 130000 (in Rupiah)
   activationFee    Int      @default(150000)
@@ -38,14 +40,16 @@ model Package {
 
 // Voucher Hotspot (Eceran & Reseller)
 model VoucherPlan {
-  id              Int      @id @default(autoincrement())
-  name            String   @db.VarChar(100)            // "Voucher Eceran (8 Jam)"
-  type            String   @db.VarChar(20)             // "retail" | "reseller"
-  tagLabel        String   @db.VarChar(50)             // "Pengguna Langsung" | "Harga Grosir Mitra"
+  id              Int              @id @default(autoincrement())
+  categoryId      Int?
+  category        ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name            String           @db.VarChar(100)            // "Voucher Eceran (8 Jam)"
+  type            String           @db.VarChar(20)             // "retail" | "reseller"
+  tagLabel        String           @db.VarChar(50)             // "Pengguna Langsung" | "Harga Grosir Mitra"
   price           Int                                   // 3000 | 2000
-  priceUnit       String   @db.VarChar(50)             // "/ voucher"
-  duration        String   @db.VarChar(50)             // "Masa aktif 8 jam sejak login"
-  minPurchase     String?  @db.VarChar(100)            // "Min. 25 Pcs (Modal Rp 50k)"
+  priceUnit       String           @db.VarChar(50)             // "/ voucher"
+  duration        String           @db.VarChar(50)             // "Masa aktif 8 jam sejak login"
+  minPurchase     String?          @db.VarChar(100)            // "Min. 25 Pcs (Modal Rp 50k)"
   features        String   @db.Text                    // JSON string: string[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -55,11 +59,13 @@ model VoucherPlan {
 
 // FAQ
 model Faq {
-  id        Int      @id @default(autoincrement())
-  question  String   @db.VarChar(500)
-  answer    String   @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         Int              @id @default(autoincrement())
+  categoryId Int?
+  category   ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  question   String           @db.VarChar(500)
+  answer     String           @db.Text
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   @@map("faqs")
 }
@@ -122,4 +128,18 @@ model ChatbotFile {
   updatedAt DateTime @updatedAt
 
   @@map("chatbot_files")
+}
+
+model ServiceCategory {
+  id           Int           @id @default(autoincrement())
+  name         String        @db.VarChar(100)
+  slug         String        @unique @db.VarChar(100)
+  description  String?       @db.VarChar(255)
+  packages     Package[]
+  voucherPlans VoucherPlan[]
+  faqs         Faq[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("service_categories")
 }

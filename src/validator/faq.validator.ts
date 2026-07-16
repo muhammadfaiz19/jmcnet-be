@@ -2,6 +2,7 @@ import z from "zod";
 
 export const CreateFaqSchema = z.object({
   body: z.object({
+    categoryId: z.coerce.number().int().positive().optional().nullable(),
     question: z.string().min(1, "Question is required"),
     answer: z.string().min(1, "Answer is required"),
   }),

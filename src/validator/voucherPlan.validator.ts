@@ -2,6 +2,7 @@ import z from "zod";
 
 export const CreateVoucherPlanSchema = z.object({
   body: z.object({
+    categoryId: z.coerce.number().int().positive().optional().nullable(),
     name: z.string().min(1, "Name is required"),
     type: z.enum(["retail", "reseller"]),
     tagLabel: z.string().min(1, "Tag label is required"),

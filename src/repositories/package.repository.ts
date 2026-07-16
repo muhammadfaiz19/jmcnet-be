@@ -4,16 +4,19 @@ export const packageRepository = {
   async findMany() {
     return db.package.findMany({
       orderBy: { id: "asc" },
+      include: { category: true },
     });
   },
 
   async findById(id: number) {
     return db.package.findUnique({
       where: { id },
+      include: { category: true },
     });
   },
 
   async create(data: {
+    categoryId?: number | null;
     name: string;
     tierLabel: string;
     tierNumber: string;
@@ -30,6 +33,7 @@ export const packageRepository = {
   },
 
   async update(id: number, data: {
+    categoryId?: number | null;
     name?: string;
     tierLabel?: string;
     tierNumber?: string;

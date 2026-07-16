@@ -4,17 +4,28 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Mulai seeding database JMCNET...");
+  console.log("🧹 Membersihkan database sebelum seeding...");
+  
+  // Hapus data lama agar reset bersih (urutan penghapusan harus memperhatikan foreign key)
+  await prisma.chatbotFile.deleteMany();
+  await prisma.chatbotContext.deleteMany();
+  await prisma.siteSettings.deleteMany();
+  await prisma.testimonial.deleteMany();
+  await prisma.faq.deleteMany();
+  await prisma.voucherPlan.deleteMany();
+  await prisma.package.deleteMany();
+  await prisma.serviceCategory.deleteMany();
+  await prisma.admin.deleteMany();
+
+  console.log("✨ Mulai seeding database JMCNET dengan data asli...");
 
   // 1. Admin
   const adminEmail = process.env.INITIAL_ADMIN_EMAIL || "admin@jmcnet.id";
   const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || "adminpassword123";
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
-  await prisma.admin.upsert({
-    where: { email: adminEmail },
-    update: {},
-    create: {
+  const admin = await prisma.admin.create({
+    data: {
       email: adminEmail,
       name: "Administrator JMCNET",
       password: hashedPassword,
@@ -22,10 +33,40 @@ async function main() {
   });
   console.log("✅ Admin seeded");
 
+  // 1.5. Service Categories
+  const catFiber = await prisma.serviceCategory.create({
+    data: {
+      id: 1,
+      name: "Internet Rumah Fiber",
+      slug: "internet-rumah-fiber",
+      description: "Layanan internet fiber optic berkecepatan tinggi untuk rumah tangga.",
+    },
+  });
+
+  const catVoucher = await prisma.serviceCategory.create({
+    data: {
+      id: 2,
+      name: "Voucher Hotspot WiFi",
+      slug: "voucher-hotspot-wifi",
+      description: "Layanan WiFi hotspot eceran dan paket kemitraan reseller grosir.",
+    },
+  });
+
+  const catMitra = await prisma.serviceCategory.create({
+    data: {
+      id: 3,
+      name: "Layanan Mitra & Dedicated",
+      slug: "layanan-mitra-dedicated",
+      description: "Layanan internet dedicated untuk kantor, sekolah, dan instansi.",
+    },
+  });
+  console.log("✅ Service Categories seeded");
+
   // 2. Packages (4 Paket dengan fitur & status ceklis/silang persis frontend)
   const packages = [
     {
       id: 1,
+      categoryId: catFiber.id,
       name: "SGC HEMAT",
       tierLabel: "Pemula / Hemat",
       tierNumber: "Tier 1",
@@ -43,6 +84,7 @@ async function main() {
     },
     {
       id: 2,
+      categoryId: catFiber.id,
       name: "SGC LITE",
       tierLabel: "Rumah Tangga",
       tierNumber: "Tier 2",
@@ -60,6 +102,7 @@ async function main() {
     },
     {
       id: 3,
+      categoryId: catFiber.id,
       name: "SGC SOCIALLY",
       tierLabel: "Optimal & Cepat",
       tierNumber: "Tier 3",
@@ -77,6 +120,7 @@ async function main() {
     },
     {
       id: 4,
+      categoryId: catFiber.id,
       name: "SGC FAMILY",
       tierLabel: "Performa Tinggi",
       tierNumber: "Tier 4",
@@ -95,10 +139,8 @@ async function main() {
   ];
 
   for (const pkg of packages) {
-    await prisma.package.upsert({
-      where: { id: pkg.id },
-      update: pkg,
-      create: pkg,
+    await prisma.package.create({
+      data: pkg,
     });
   }
   console.log("✅ Packages seeded");
@@ -107,6 +149,7 @@ async function main() {
   const voucherPlans = [
     {
       id: 1,
+      categoryId: catVoucher.id,
       name: "Voucher Eceran (8 Jam)",
       type: "retail",
       tagLabel: "Pengguna Langsung",
@@ -121,6 +164,7 @@ async function main() {
     },
     {
       id: 2,
+      categoryId: catVoucher.id,
       name: "Paket Reseller Voucher",
       type: "reseller",
       tagLabel: "Harga Grosir Mitra",
@@ -136,35 +180,31 @@ async function main() {
   ];
 
   for (const v of voucherPlans) {
-    await prisma.voucherPlan.upsert({
-      where: { id: v.id },
-      update: v,
-      create: v,
+    await prisma.voucherPlan.create({
+      data: v,
     });
   }
   console.log("✅ Voucher Plans seeded");
 
   // 4. FAQs (12 Item)
   const faqs = [
-    { id: 1, question: "Apakah benar-benar 100% tanpa batas kuota (Unlimited Tanpa FUP)?", answer: "Ya, 100% Benar! Seluruh paket internet rumah tangga (SGC HEMAT, LITE, SOCIALLY, FAMILY) bersifat benar-benar Unlimited tanpa aturan batas pemakaian wajar (FUP). Kecepatan internet Anda tidak akan diturunkan meskipun Anda mendownload atau streaming beratus-ratus gigabyte setiap bulannya." },
-    { id: 2, question: "Apakah biaya bulanan sudah termasuk biaya sewa modem?", answer: "Ya, biaya bulanan yang tertera di daftar paket sudah GRATIS peminjaman modem Optical Network Terminal (ONT) selama Anda berlangganan. Tidak ada biaya sewa modem tambahan tersembunyi di tagihan bulanan Anda." },
-    { id: 3, question: "Berapa biaya pasang baru dan apa saja yang didapatkan?", answer: "Biaya instalasi pasang baru saat ini sedang promo yaitu Rp 150.000 (normal Rp 300.000). Biaya ini sudah mencakup penarikan kabel fiber optik ke rumah Anda, peminjaman modem WiFi ONT, instalasi teknisi, dan konfigurasi jaringan hingga internet siap digunakan." },
-    { id: 4, question: "Bagaimana sistem pembayaran tagihan bulanan JMCNET?", answer: "Sistem pembayaran kami menggunakan skema prabayar (pay-in-advance) atau pascabayar tergantung kesepakatan awal. Tagihan akan keluar setiap tanggal siklus pemasangan. Pembayaran dapat dilakukan dengan mudah melalui Transfer Bank (BRI, BCA, Mandiri), E-Wallet (DANA, OVO, GoPay), maupun melalui minimarket (Alfamart/Indomaret) melalui virtual account." },
-    { id: 5, question: "Apa perbedaan jaringan Fiber Optic murni dengan internet wireless (radio/parabola)?", answer: "Fiber Optic menggunakan kabel serat kaca yang menghantarkan data menggunakan cahaya, sehingga koneksinya sangat stabil, memiliki latensi (ping) yang sangat rendah, dan 100% kebal terhadap gangguan cuaca buruk seperti hujan lebat atau petir. Berbeda dengan internet radio/parabola yang mudah terganggu oleh cuaca dan penghalang fisik." },
-    { id: 6, question: "Berapa lama proses pemasangan sejak pendaftaran dilakukan?", answer: "Setelah Anda mendaftar via WhatsApp dan lokasi Anda terkonfirmasi masuk dalam area cakupan (ODP tersedia), tim teknisi kami akan menjadwalkan pemasangan ke rumah Anda dalam waktu 1x24 jam hingga maksimal 2x24 jam." },
-    { id: 7, question: "Apa yang dimaksud dengan bonus 'Free Hotspot Member'?", answer: "Sebagai nilai tambah eksklusif, setiap pelanggan bulanan JMCNET mendapatkan akun login gratis untuk terkoneksi ke jaringan WiFi Hotspot publik SGC Network yang tersebar di berbagai titik di wilayah Cirebon. Jumlah perangkat yang bisa login tergantung tier paket Anda (2 hingga 5 perangkat sekaligus)." },
-    { id: 8, question: "Bagaimana jika terjadi kendala atau gangguan internet?", answer: "Tim Customer Service dan Technical Support kami siap membantu Anda. Anda dapat menghubungi CS melalui WhatsApp di nomor 0851-7999-7972 or 0851-7999-7975 pada jam operasional. Jika kendala memerlukan perbaikan fisik (seperti kabel putus), teknisi lapangan akan dikerahkan secepatnya." },
-    { id: 9, question: "Apakah saya bisa upgrade atau downgrade paket internet di kemudian hari?", answer: "Tentu saja! Anda bisa mengajukan perubahan paket (upgrade atau downgrade) kapan saja dengan menghubungi Customer Service kami minimal 3 hari sebelum tanggal jatuh tempo tagihan bulanan berikutnya. Tidak ada biaya penalti untuk perubahan paket." },
-    { id: 10, question: "Apakah jaringan JMCNET cocok untuk bermain game online kompetitif?", answer: "Sangat cocok! Karena menggunakan jaringan 100% Fiber Optic murni serta routing bandwidth yang dioptimalkan, JMCNET menawarkan latensi (ping) yang sangat rendah dan stabil ke berbagai server game online populer seperti Mobile Legends, PUBG, Valorant, Dota 2, dan Free Fire." },
-    { id: 11, question: "Apakah ada kontrak berlangganan atau denda jika berhenti?", answer: "Kami berkomitmen pada kenyamanan pelanggan. Berlangganan di JMCNET bersifat fleksibel. Namun, untuk peminjaman perangkat modem ONT, apabila Anda memutuskan berhenti berlangganan, perangkat modem wajib dikembalikan dalam kondisi baik kepada tim teknisi kami." },
-    { id: 12, question: "Bagaimana cara mendaftar atau mengecek apakah rumah saya tercover?", answer: "Caranya sangat mudah! Cukup klik tombol 'Daftar via WA' atau 'Cek Lokasi' yang ada di website ini. Anda akan langsung terhubung dengan admin Customer Service kami via WhatsApp. Kirimkan share location (titik koordinat) rumah Anda, dan tim kami akan mengecek ketersediaan jaringan di lokasi Anda saat itu juga." },
+    { id: 1, categoryId: catFiber.id, question: "Apakah benar-benar 100% tanpa batas kuota (Unlimited Tanpa FUP)?", answer: "Ya, 100% Benar! Seluruh paket internet rumah tangga (SGC HEMAT, LITE, SOCIALLY, FAMILY) bersifat benar-benar Unlimited tanpa aturan batas pemakaian wajar (FUP). Kecepatan internet Anda tidak akan diturunkan meskipun Anda mendownload atau streaming beratus-ratus gigabyte setiap bulannya." },
+    { id: 2, categoryId: catFiber.id, question: "Apakah biaya bulanan sudah termasuk biaya sewa modem?", answer: "Ya, biaya bulanan yang tertera di daftar paket sudah GRATIS peminjaman modem Optical Network Terminal (ONT) selama Anda berlangganan. Tidak ada biaya sewa modem tambahan tersembunyi di tagihan bulanan Anda." },
+    { id: 3, categoryId: catFiber.id, question: "Berapa biaya pasang baru dan apa saja yang didapatkan?", answer: "Biaya instalasi pasang baru saat ini sedang promo yaitu Rp 150.000 (normal Rp 300.000). Biaya ini sudah mencakup penarikan kabel fiber optik ke rumah Anda, peminjaman modem WiFi ONT, instalasi teknisi, dan konfigurasi jaringan hingga internet siap digunakan." },
+    { id: 4, categoryId: catFiber.id, question: "Bagaimana sistem pembayaran tagihan bulanan JMCNET?", answer: "Sistem pembayaran kami menggunakan skema prabayar (pay-in-advance) atau pascabayar tergantung kesepakatan awal. Tagihan akan keluar setiap tanggal siklus pemasangan. Pembayaran dapat dilakukan dengan mudah melalui Transfer Bank (BRI, BCA, Mandiri), E-Wallet (DANA, OVO, GoPay), maupun melalui minimarket (Alfamart/Indomaret) melalui virtual account." },
+    { id: 5, categoryId: catFiber.id, question: "Apa perbedaan jaringan Fiber Optic murni dengan internet wireless (radio/parabola)?", answer: "Fiber Optic menggunakan kabel serat kaca yang menghantarkan data menggunakan cahaya, sehingga koneksinya sangat stabil, memiliki latensi (ping) yang sangat rendah, dan 100% kebal terhadap gangguan cuaca buruk seperti hujan lebat atau petir. Berbeda dengan internet radio/parabola yang mudah terganggu oleh cuaca dan penghalang fisik." },
+    { id: 6, categoryId: catFiber.id, question: "Berapa lama proses pemasangan sejak pendaftaran dilakukan?", answer: "Tim teknisi kami akan menjadwalkan pemasangan ke rumah Anda dalam waktu 1x24 jam hingga maksimal 2x24 jam setelah registrasi dan lokasi terkonfirmasi masuk cakupan." },
+    { id: 7, categoryId: catVoucher.id, question: "Apa yang dimaksud dengan bonus 'Free Hotspot Member'?", answer: "Sebagai nilai tambah eksklusif, setiap pelanggan bulanan JMCNET mendapatkan akun login gratis untuk terkoneksi ke jaringan WiFi Hotspot publik SGC Network yang tersebar di berbagai titik di wilayah Cirebon. Jumlah perangkat yang bisa login tergantung tier paket Anda (2 hingga 5 perangkat sekaligus)." },
+    { id: 8, categoryId: catFiber.id, question: "Bagaimana jika terjadi kendala atau gangguan internet?", answer: "Tim Customer Service dan Technical Support kami siap membantu Anda. Anda dapat menghubungi CS melalui WhatsApp di nomor 0851-7999-7972 atau 0851-7999-7975 pada jam operasional. Jika kendala memerlukan perbaikan fisik (seperti kabel putus), teknisi lapangan akan dikerahkan secepatnya." },
+    { id: 9, categoryId: catFiber.id, question: "Apakah saya bisa upgrade atau downgrade paket internet di kemudian hari?", answer: "Tentu saja! Anda bisa mengajukan perubahan paket (upgrade atau downgrade) kapan saja dengan menghubungi Customer Service kami minimal 3 hari sebelum tanggal jatuh tempo tagihan bulanan berikutnya. Tidak ada biaya penalti untuk perubahan paket." },
+    { id: 10, categoryId: catFiber.id, question: "Apakah jaringan JMCNET cocok untuk bermain game online kompetitif?", answer: "Sangat cocok! Karena menggunakan jaringan 100% Fiber Optic murni serta routing bandwidth yang dioptimalkan, JMCNET menawarkan latensi (ping) yang sangat rendah dan stabil ke berbagai server game online populer seperti Mobile Legends, PUBG, Valorant, Dota 2, dan Free Fire." },
+    { id: 11, categoryId: catFiber.id, question: "Apakah ada kontrak berlangganan atau denda jika berhenti?", answer: "Kami berkomitmen pada kenyamanan pelanggan. Berlangganan di JMCNET bersifat fleksibel. Namun, untuk peminjaman perangkat modem ONT, apabila Anda memutuskan berhenti berlangganan, perangkat modem wajib dikembalikan dalam kondisi baik kepada tim teknisi kami." },
+    { id: 12, categoryId: catFiber.id, question: "Bagaimana cara mendaftar atau mengecek apakah rumah saya tercover?", answer: "Caranya sangat mudah! Cukup klik tombol 'Daftar via WA' atau 'Cek Lokasi' yang ada di website ini. Anda akan langsung terhubung dengan admin Customer Service kami via WhatsApp. Kirimkan share location (titik koordinat) rumah Anda, dan tim kami akan mengecek ketersediaan jaringan di lokasi Anda saat itu juga." },
   ];
 
   for (const faq of faqs) {
-    await prisma.faq.upsert({
-      where: { id: faq.id },
-      update: faq,
-      create: faq,
+    await prisma.faq.create({
+      data: faq,
     });
   }
   console.log("✅ FAQs seeded");
@@ -198,19 +238,15 @@ async function main() {
   ];
 
   for (const t of testimonials) {
-    await prisma.testimonial.upsert({
-      where: { id: t.id },
-      update: t,
-      create: t,
+    await prisma.testimonial.create({
+      data: t,
     });
   }
   console.log("✅ Testimonials seeded");
 
   // 6. Site Settings (1 Row)
-  await prisma.siteSettings.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
+  await prisma.siteSettings.create({
+    data: {
       id: 1,
       companyName: "PT Jaringan Multimedia Cirebon",
       brandName: "JMCNET",
@@ -232,7 +268,7 @@ async function main() {
   // 7. Chatbot Context awal
   const defaultChatbotContext = `
 Kamu adalah asisten virtual resmi JMCNET (PT Jaringan Multimedia Cirebon), penyedia layanan internet fiber optic terpercaya di wilayah Cirebon.
-Gunakan informasi berikut untuk menjawab pertanyaan pelanggan:
+Gunkan informasi berikut untuk menjawab pertanyaan pelanggan:
 
 - Perusahaan: PT Jaringan Multimedia Cirebon (JMCNET / SGC Network)
 - Bidang Layanan: Penyedia Jasa Internet (ISP) Fiber Optic 100% Murni
@@ -250,19 +286,27 @@ Aturan Jawaban:
 - Tulis jawaban dengan rapi menggunakan bullet points (daftar berpoin) atau tabel Markdown agar nyaman dibaca.
 `.trim();
 
-  await prisma.chatbotContext.upsert({
-    where: { name: "Profil JMCNET" },
-    update: {
-      context: defaultChatbotContext,
-    },
-    create: {
+  await prisma.chatbotContext.create({
+    data: {
       name: "Profil JMCNET",
       context: defaultChatbotContext,
     },
   });
   console.log("✅ Chatbot Context seeded");
 
-  console.log("🎉 Seeding selesai!");
+  // 8. Chatbot File awal
+  await prisma.chatbotFile.create({
+    data: {
+      id: 1,
+      filename: "panduan_layanan_jmcnet.pdf",
+      filePath: "uploads/panduan_layanan_jmcnet.pdf",
+      fileUrl: "/uploads/panduan_layanan_jmcnet.pdf",
+      content: "PT Jaringan Multimedia Cirebon (JMCNET) menyediakan layanan internet fiber optik unlimited untuk rumah tangga dan bisnis. Paket yang ditawarkan adalah SGC HEMAT (5 Mbps - Rp130.000), SGC LITE (16 Mbps - Rp166.500), SGC SOCIALLY (26 Mbps - Rp222.000), dan SGC FAMILY (56 Mbps - Rp333.000). Aktivasi awal dikenakan biaya promo Rp150.000.",
+    },
+  });
+  console.log("✅ Chatbot File seeded");
+
+  console.log("🎉 Seeding selesai dengan sukses!");
 }
 
 main()

@@ -4,22 +4,24 @@ export const faqRepository = {
   async findMany() {
     return db.faq.findMany({
       orderBy: { id: "asc" },
+      include: { category: true },
     });
   },
 
   async findById(id: number) {
     return db.faq.findUnique({
       where: { id },
+      include: { category: true },
     });
   },
 
-  async create(data: { question: string; answer: string }) {
+  async create(data: { categoryId?: number | null; question: string; answer: string }) {
     return db.faq.create({
       data,
     });
   },
 
-  async update(id: number, data: { question?: string; answer?: string }) {
+  async update(id: number, data: { categoryId?: number | null; question?: string; answer?: string }) {
     return db.faq.update({
       where: { id },
       data,

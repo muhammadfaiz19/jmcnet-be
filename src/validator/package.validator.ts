@@ -2,6 +2,7 @@ import z from "zod";
 
 export const CreatePackageSchema = z.object({
   body: z.object({
+    categoryId: z.coerce.number().int().positive().optional().nullable(),
     name: z.string().min(1, "Name is required"),
     tierLabel: z.string().min(1, "Tier label is required"),
     tierNumber: z.string().min(1, "Tier number is required"),
