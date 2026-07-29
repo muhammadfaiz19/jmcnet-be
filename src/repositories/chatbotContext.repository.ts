@@ -1,9 +1,5 @@
 import { db } from "../utils/prisma";
 
-function formatSection(title: string, data: unknown) {
-  return `${title}:\n${JSON.stringify(data, null, 2)}`;
-}
-
 export const chatbotContextRepository = {
   async getByName(name: string) {
     return db.chatbotContext.findUnique({
@@ -36,10 +32,8 @@ export const chatbotContextRepository = {
     const [packages, voucherPlans, siteSettings, faqs] = await Promise.all([
       db.package.findMany({
         select: {
-          id: true,
           name: true,
           tierLabel: true,
-          tierNumber: true,
           description: true,
           speedMbps: true,
           priceMonthly: true,
@@ -51,7 +45,6 @@ export const chatbotContextRepository = {
       }),
       db.voucherPlan.findMany({
         select: {
-          id: true,
           name: true,
           type: true,
           tagLabel: true,
@@ -71,14 +64,73 @@ export const chatbotContextRepository = {
       }),
     ]);
 
+    // --- Format paket internet sebagai teks ringkas ---
+    const packageLines = packages.map((p, i) => {
+      let featuresText = "";
+      try {
+        const feats = typeof p.features === "string" ? JSON.parse(p.features) : p.features;
+        if (Array.isArray(feats)) {
+          featuresText = feats
+            .map((f: any) => `  ${f.included ? "✅" : "❌"} ${f.text || f}`)
+            .join("\n");
+        }
+      } catch { featuresText = ""; }
+
+      return `${i + 1}. ${p.name} (${p.tierLabel})
+  - Kecepatan: ${p.speedMbps} Mbps
+  - Harga Bulanan: Rp ${p.priceMonthly.toLocaleString("id-ID")}
+  - Biaya Aktivasi: Rp ${p.activationFee.toLocaleString("id-ID")}
+  - Deskripsi: ${p.description}
+  - Unggulan: ${p.isFeatured ? "Ya (Paket Favorit)" : "Tidak"}
+${featuresText ? `  - Fitur:\n${featuresText}` : ""}`;
+    }).join("\n\n");
+
+    // --- Format voucher sebagai teks ringkas ---
+    const voucherLines = voucherPlans.map((v, i) => {
+      let featuresText = "";
+      try {
+        const feats = typeof v.features === "string" ? JSON.parse(v.features) : v.features;
+        if (Array.isArray(feats)) {
+          featuresText = feats.map((f: any) => `  - ${typeof f === "string" ? f : f.text || f}`).join("\n");
+        }
+      } catch { featuresText = ""; }
+
+      return `${i + 1}. ${v.name} (${v.tagLabel})
+  - Tipe: ${v.type}
+  - Harga: Rp ${v.price.toLocaleString("id-ID")}${v.priceUnit}
+  - Durasi: ${v.duration}${v.minPurchase ? `\n  - Pembelian Minimal: ${v.minPurchase}` : ""}
+${featuresText ? `  - Keuntungan:\n${featuresText}` : ""}`;
+    }).join("\n\n");
+
+    // --- Format site settings ---
+    let siteInfo = "Tidak tersedia.";
+    if (siteSettings) {
+      const s = siteSettings;
+      siteInfo = `- Perusahaan: ${s.companyName} (${s.brandName})
+- Tagline: ${s.tagline}
+- Alamat: ${s.address}
+- Email: ${s.email}
+- Jam Operasional: ${s.operationalHours}
+- WhatsApp CS 1: ${s.whatsappCs1}
+- WhatsApp CS 2: ${s.whatsappCs2}
+- Tentang Kami: ${s.aboutDescription}`;
+    }
+
+    // --- Format FAQ ---
+    const faqLines = faqs.map((f, i) => 
+      `${i + 1}. T: ${f.question}\n   J: ${f.answer}`
+    ).join("\n\n");
+
+    // --- Gabungkan semua ---
     const sections = [
-      formatSection(`DAFTAR PAKET INTERNET (Total: ${packages.length} paket — SEBUTKAN SEMUA jika user bertanya daftar paket)`, packages),
-      formatSection(`DAFTAR VOUCHER PLAN (Total: ${voucherPlans.length} voucher — SEBUTKAN SEMUA jika user bertanya daftar voucher)`, voucherPlans),
-      formatSection("SITE CONFIGURATION & CONTACT INFO", siteSettings),
-      formatSection(`FREQUENTLY ASKED QUESTIONS / FAQ (Total: ${faqs.length} FAQ)`, faqs),
+      `DAFTAR PAKET INTERNET (Total: ${packages.length} paket — WAJIB SEBUTKAN SEMUA):\n${packageLines}`,
+      `DAFTAR VOUCHER (Total: ${voucherPlans.length} voucher — WAJIB SEBUTKAN SEMUA):\n${voucherLines}`,
+      `INFORMASI PERUSAHAAN & KONTAK:\n${siteInfo}`,
+      `FAQ (Total: ${faqs.length} pertanyaan):\n${faqLines}`,
     ];
 
-    return sections.join("\n\n");
+    return sections.join("\n\n---\n\n");
   },
 };
 export type ChatbotContextRepository = typeof chatbotContextRepository;
+
