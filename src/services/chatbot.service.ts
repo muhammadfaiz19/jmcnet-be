@@ -45,25 +45,31 @@ export const chatbotService = {
       const databaseContext = publicDatabaseSnapshot.trim();
       const filesContext = chatbotFilesContent.trim();
 
-      const payload = `
-Konteks Utama:
+
+      // --- System Message: persona, rules, and all context data ---
+      const systemMessage = `
 ${mainContext}
 
-Konteks Tambahan dari Dokumen yang Diupload:
-${filesContext || "Tidak ada dokumen tambahan."}
+=== DATA DARI DATABASE (WAJIB DIGUNAKAN SEBAGAI SUMBER UTAMA) ===
+Data berikut adalah data RESMI dan TERKINI yang diambil langsung dari database perusahaan.
+Ketika user bertanya tentang daftar paket, harga, voucher, FAQ, atau informasi perusahaan, kamu WAJIB merujuk SELURUH data di bawah ini.
+JANGAN PERNAH melewatkan atau mengabaikan item apapun dari data ini. SEBUTKAN SEMUA item yang relevan.
 
-Data Publik dari Database:
 ${databaseContext}
 
-Aturan Penulisan & Format Respon (PENTING AGAR MUDAH DIBACA):
-1. JANGAN menulis tanggapan dalam bentuk satu paragraf panjang yang padat (anti-wall-of-text).
-2. Gunakan kalimat pembuka dan penutup yang singkat (maksimal 1-2 baris saja) dengan sapaan hangat "kakak".
-3. Gunakan daftar berpoin (bullet points), baris baru berganda (double newline), dan cetak tebal (bold) untuk memisahkan rincian informasi agar sangat nyaman dibaca.
-4. Jika membandingkan paket atau menampilkan FAQ, gunakan tabel Markdown yang bersih atau daftar berpoin terstruktur.
-5. Jawablah menggunakan data publik yang tersedia di atas saja. Jangan mengarang data di luar konteks.
+${filesContext ? `=== KONTEKS TAMBAHAN DARI DOKUMEN ===\n${filesContext}` : ""}
 
-Pertanyaan User: ${message}
+=== ATURAN RESPON ===
+1. WAJIB: Jika user bertanya daftar paket/voucher, SEBUTKAN SEMUA paket/voucher yang ada di data di atas tanpa terkecuali. Hitung jumlahnya dan pastikan cocok.
+2. JANGAN menulis tanggapan dalam bentuk satu paragraf panjang (anti-wall-of-text).
+3. Gunakan sapaan "kakak" yang hangat di awal dan akhir.
+4. Gunakan bullet points, bold, atau tabel Markdown agar mudah dibaca.
+5. Jawab HANYA menggunakan data yang tersedia di atas. Jangan mengarang data di luar konteks.
+6. Jika user ingin mendaftar, arahkan ke WhatsApp CS.
 `.trim();
+
+      // --- User Message: just the question ---
+      const userMessage = message;
 
       let response;
       let usedModel = "llama-3.3-70b-versatile";
@@ -71,18 +77,24 @@ Pertanyaan User: ${message}
       try {
         response = await client.chat.completions.create({
           model: "llama-3.3-70b-versatile",
-          messages: [{ role: "user", content: payload }],
-          temperature: 0.6,
-          max_tokens: 1536,
+          messages: [
+            { role: "system", content: systemMessage },
+            { role: "user", content: userMessage },
+          ],
+          temperature: 0.4,
+          max_tokens: 2048,
         });
       } catch (firstErr) {
         console.warn("Primary model llama-3.3-70b-versatile failed. Trying fallback model llama-3.1-8b-instant...", firstErr);
         usedModel = "llama-3.1-8b-instant";
         response = await client.chat.completions.create({
           model: "llama-3.1-8b-instant",
-          messages: [{ role: "user", content: payload }],
-          temperature: 0.6,
-          max_tokens: 1024,
+          messages: [
+            { role: "system", content: systemMessage },
+            { role: "user", content: userMessage },
+          ],
+          temperature: 0.4,
+          max_tokens: 1536,
         });
       }
 

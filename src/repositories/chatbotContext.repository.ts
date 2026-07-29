@@ -47,6 +47,7 @@ export const chatbotContextRepository = {
           features: true,
           isFeatured: true,
         },
+        orderBy: { tierNumber: "asc" },
       }),
       db.voucherPlan.findMany({
         select: {
@@ -71,10 +72,10 @@ export const chatbotContextRepository = {
     ]);
 
     const sections = [
-      formatSection("PACKAGES", packages),
-      formatSection("VOUCHER PLANS", voucherPlans),
+      formatSection(`DAFTAR PAKET INTERNET (Total: ${packages.length} paket — SEBUTKAN SEMUA jika user bertanya daftar paket)`, packages),
+      formatSection(`DAFTAR VOUCHER PLAN (Total: ${voucherPlans.length} voucher — SEBUTKAN SEMUA jika user bertanya daftar voucher)`, voucherPlans),
       formatSection("SITE CONFIGURATION & CONTACT INFO", siteSettings),
-      formatSection("FREQUENTLY ASKED QUESTIONS (FAQ)", faqs),
+      formatSection(`FREQUENTLY ASKED QUESTIONS / FAQ (Total: ${faqs.length} FAQ)`, faqs),
     ];
 
     return sections.join("\n\n");
