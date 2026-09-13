@@ -143,3 +143,53 @@ model ServiceCategory {
 
   @@map("service_categories")
 }
+
+// Laporan Kendala / Gangguan Pelanggan
+model Report {
+  id             Int            @id @default(autoincrement())
+  reportNumber   String         @unique @db.VarChar(20)    // "LPR-20260913-0001"
+  customerName   String         @db.VarChar(100)            // Nama pelapor
+  customerPhone  String         @db.VarChar(20)             // No HP / WhatsApp
+  customerAddress String        @db.VarChar(500)            // Alamat pemasangan
+  customerId     String?        @db.VarChar(50)             // ID Pelanggan (opsional, jika tahu)
+  category       ReportCategory @default(GANGGUAN_INTERNET)
+  description    String         @db.Text                    // Deskripsi masalah
+  photoUrl       String?        @db.VarChar(255)            // Foto bukti dari pelanggan (opsional)
+  status         ReportStatus   @default(MENUNGGU)
+  statusLogs     ReportStatusLog[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("reports")
+}
+
+// Log setiap perubahan status (riwayat)
+model ReportStatusLog {
+  id         Int          @id @default(autoincrement())
+  reportId   Int
+  report     Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  status     ReportStatus
+  message    String?      @db.Text                          // Pesan dari admin
+  photoUrl   String?      @db.VarChar(255)                  // Foto bukti dari admin (opsional)
+  createdBy  String?      @db.VarChar(100)                  // Nama admin
+  createdAt  DateTime     @default(now())
+
+  @@map("report_status_logs")
+}
+
+// Enum kategori laporan
+enum ReportCategory {
+  GANGGUAN_INTERNET      // Internet mati / putus
+  INTERNET_LAMBAT        // Internet lambat
+  GANGGUAN_ROUTER        // Router bermasalah
+  TAGIHAN                // Masalah tagihan
+  LAINNYA                // Lainnya
+}
+
+// Enum status laporan
+enum ReportStatus {
+  MENUNGGU    // Baru masuk, belum ditangani
+  DIPROSES    // Sedang ditangani teknisi
+  SELESAI     // Masalah sudah selesai
+  DITOLAK     // Laporan tidak valid
+}

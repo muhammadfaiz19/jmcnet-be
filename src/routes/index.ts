@@ -7,6 +7,7 @@ import { testimonialRouter } from "./testimonial.route";
 import { siteSettingsRouter } from "./siteSettings.route";
 import { chatbotRouter } from "./chatbot.route";
 import { serviceCategoryRouter } from "./serviceCategory.route";
+import { reportRouter } from "./report.route";
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use("/testimonials", testimonialRouter);
 router.use("/settings", siteSettingsRouter);
 router.use("/chatbot", chatbotRouter);
 router.use("/service-categories", serviceCategoryRouter);
+router.use("/reports", reportRouter);
 
 export default router;
